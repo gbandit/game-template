@@ -21,8 +21,16 @@ export function loginUrl(redirect = window.location.href): string {
   return `${authOrigin()}/login?redirect=${encodeURIComponent(redirect)}`;
 }
 
-export function logoutUrl(redirect = window.location.origin): string {
-  return `${authOrigin()}/api/logout?redirect=${encodeURIComponent(redirect)}`;
+/** Signs the player out of gbandit, then navigates to `redirect`. */
+export async function signOut(redirect = window.location.origin): Promise<void> {
+  const response = await fetch(`${authOrigin()}/api/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(`failed to sign out: ${response.status}`);
+  }
+  window.location.assign(redirect);
 }
 
 export function guestUrl(redirect = window.location.href): string {
