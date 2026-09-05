@@ -19,7 +19,6 @@ pub struct AccessTokenClaims {
     pub iat: i64,
     pub jti: String,
     pub username: Option<String>,
-    pub email: Option<String>,
     #[serde(default)]
     pub is_anon: bool,
 }
@@ -166,10 +165,10 @@ async fn fetch_jwks_keys(
 }
 
 fn dev_user(name: &str) -> Option<AccessTokenClaims> {
-    let (sub, email) = match name.to_lowercase().as_str() {
-        "eric" => ("dev-eric", "eric@dev.local"),
-        "anna" => ("dev-anna", "anna@dev.local"),
-        "steve" => ("dev-steve", "steve@dev.local"),
+    let sub = match name.to_lowercase().as_str() {
+        "eric" => "dev-eric",
+        "anna" => "dev-anna",
+        "steve" => "dev-steve",
         _ => return None,
     };
     Some(AccessTokenClaims {
@@ -180,7 +179,6 @@ fn dev_user(name: &str) -> Option<AccessTokenClaims> {
         iat: 0,
         jti: format!("dev-{sub}"),
         username: Some(name.to_lowercase()),
-        email: Some(email.into()),
         is_anon: false,
     })
 }
