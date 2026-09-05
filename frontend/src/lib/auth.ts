@@ -39,15 +39,18 @@ export function guestUrl(redirect = window.location.href): string {
 
 /**
  * Visiting your game normally creates a guest automatically, so a token is
- * almost always available. The exception worth handling is `session_expired`:
- * the player *had* an account (Google, or one merged into another) and its
- * session died — the auth service refuses to silently replace it with a new
- * guest, because that would drop them into your game as a stranger with none
- * of their progress. Send those players to `loginUrl()`.
+ * almost always available. Two answers need handling, and both mean "send the
+ * player to `loginUrl()`". `session_expired`: the player *had* an account
+ * (Google, or one merged into another) and its session died — the auth service
+ * refuses to silently replace it with a new guest, because that would drop
+ * them into your game as a stranger with none of their progress.
+ * `guest_limit_reached`: the player's network already holds as many guests as
+ * the auth service allows, so this visitor has to sign in with Google instead.
  */
 export type AccessTokenResult =
   | { status: "token"; access_token: string; expires_at: string }
   | { status: "session_expired" }
+  | { status: "guest_limit_reached" }
   | { status: "signed_out" };
 
 async function unauthorizedResult(response: Response): Promise<AccessTokenResult> {
@@ -83,6 +86,13 @@ export async function requestAccessToken(
 
   if (response.status === 401) {
     return unauthorizedResult(response);
+  }
+
+  if (response.status === 429) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (payload.error === "guest_limit_reached") {
+      return { status: "guest_limit_reached" };
+    }
   }
 
   if (!response.ok) {
