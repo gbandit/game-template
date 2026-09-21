@@ -20,7 +20,7 @@ gbandit --help
 
 For more information about the platform, the cli, the config or anything else gbandit related, use the `gbandit docs` command.
 
-The gbandit cli by default targets the dev environment, if you want to target prod, use --environment prod
+`gbandit deploy` builds your project and rolls it out to dev. Prod never builds: `gbandit promote` points prod at the Release dev is running, so prod serves exactly what you verified in dev.
 
 ## Database and schema
 Your code owns the schema. The platform provisions the database and hands the
