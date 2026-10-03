@@ -7,8 +7,11 @@ import { startTenantTelemetry } from "@/lib/telemetry";
 import { DevToolbar } from "@/lib/dev-auth/DevToolbar";
 import "./index.css";
 
-initErrorReporter();
-startTenantTelemetry();
+// Both report to the platform, which only exists where the game is deployed.
+if (!import.meta.env.DEV) {
+  initErrorReporter();
+  startTenantTelemetry();
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

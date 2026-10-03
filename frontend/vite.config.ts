@@ -10,12 +10,12 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
-  // Dev-server only — `vite build` (used by the platform's prod pipeline) ignores `server`.
+  // Only `bun run dev` reads `server`. The build that `gbandit deploy` runs ignores it.
   server: {
     host: true,
     proxy: {
       "/api": {
-        target: "http://backend:8080",
+        target: "http://localhost:8080",
         changeOrigin: true,
       },
     },
