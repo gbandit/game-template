@@ -5,11 +5,6 @@ Always use the `gbandit` CLI to build and deploy:
 gbandit deploy --message "<what you just changed>"
 ```
 
-If no account is logged in yet and the project is frontend-only, create a
-guest account first with `gbandit login --guest` (no browser needed). A Google
-account (`gbandit login`) is only required for backend/database deploys and
-can be linked later — the guest's username and projects are kept.
-
 Other useful CLI commands:
 ```bash
 gbandit logs [frontend|backend]
