@@ -1,5 +1,6 @@
 import { redirect } from "react-router";
-import { ApiError, apiFetchWithToken } from "@/lib/http";
+import { ApiError } from "@/lib/api-error";
+import { apiFetchWithToken } from "@/lib/http";
 
 export interface SessionUser {
   id: string;
@@ -11,37 +12,40 @@ export function getMe(): Promise<SessionUser> {
   return apiFetchWithToken<SessionUser>("/api/me");
 }
 
+/**
+ * Not signed in: no session (401), or the auth service sending the player to
+ * sign in instead of handing out another guest. Both are answered by the
+ * logged-out page, which offers sign-in.
+ */
+function isSignedOut(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.is("guest-limit-reached"));
+}
+
 export async function getOptionalMe(): Promise<SessionUser | null> {
   try {
     return await getMe();
   } catch (error) {
-    // 401 = not signed in. 404 = the platform gateway answering for a project
-    // whose backend isn't deployed (backend commented out in gbandit.jsonc) —
-    // treat both as "no user" instead of erroring the page.
-    if (error instanceof ApiError && (error.status === 401 || error.status === 404)) {
+    // `no-backend` is the platform answering for a game whose backend isn't
+    // deployed (backend commented out in gbandit.jsonc), so there are no
+    // players to sign in. A 404 from your own backend is a real error.
+    if (isSignedOut(error) || (error instanceof ApiError && error.is("no-backend"))) {
       return null;
     }
     throw error;
   }
 }
 
+// Loaders let any other failure propagate as it is; RouteError shows it.
+
 export async function requireUser(): Promise<SessionUser> {
   try {
     return await getMe();
   } catch (error) {
-    if (error instanceof ApiError && error.status === 401) throw redirect("/");
-    console.error("[loader] requireUser failed", error);
-    if (error instanceof ApiError) throw new Response(error.message, { status: error.status });
+    if (isSignedOut(error)) throw redirect("/");
     throw error;
   }
 }
 
-export async function optionalUser(): Promise<SessionUser | null> {
-  try {
-    return await getOptionalMe();
-  } catch (error) {
-    console.error("[loader] optionalUser failed", error);
-    if (error instanceof ApiError) throw new Response(error.message, { status: error.status });
-    throw error;
-  }
+export function optionalUser(): Promise<SessionUser | null> {
+  return getOptionalMe();
 }

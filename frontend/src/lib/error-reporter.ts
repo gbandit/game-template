@@ -74,8 +74,7 @@ async function flush() {
   // Attach Bearer token if available. Swallow any errors from token minting —
   // unhandled rejections here would re-trigger our own error handler.
   try {
-    const token = await getAccessToken();
-    if (token) headers["authorization"] = `Bearer ${token}`;
+    headers["authorization"] = `Bearer ${await getAccessToken()}`;
   } catch {
     // Send anonymously rather than failing the report.
   }

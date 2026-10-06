@@ -60,12 +60,8 @@ function clearScheduledHeartbeat(): void {
 }
 
 async function sendHeartbeat(): Promise<void> {
-  const token = await getAccessToken();
-  if (!token) {
-    return;
-  }
-
   try {
+    const token = await getAccessToken();
     await fetch(HEARTBEAT_PATH, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

@@ -1,3 +1,4 @@
+import { fetchOrThrow } from "@/lib/api-error";
 import { gbanditOrigin } from "@/lib/gbandit";
 
 type TokenResponse = {
@@ -23,13 +24,10 @@ export function loginUrl(redirect = window.location.href): string {
 
 /** Signs the player out of gbandit, then navigates to `redirect`. */
 export async function signOut(redirect = window.location.origin): Promise<void> {
-  const response = await fetch(`${authOrigin()}/api/logout`, {
+  await fetchOrThrow(`${authOrigin()}/api/logout`, {
     method: "POST",
     credentials: "include",
   });
-  if (!response.ok) {
-    throw new Error(`failed to sign out: ${response.status}`);
-  }
   window.location.assign(redirect);
 }
 
@@ -38,78 +36,37 @@ export function guestUrl(redirect = window.location.href): string {
 }
 
 /**
- * Visiting your game normally creates a guest automatically, so a token is
- * almost always available. Two answers need handling, and both mean "send the
- * player to `loginUrl()`". `session_expired`: the player *had* an account
- * (Google, or one merged into another) and its session died — the auth service
- * refuses to silently replace it with a new guest, because that would drop
- * them into your game as a stranger with none of their progress.
- * `guest_limit_reached`: the player's network already holds as many guests as
- * the auth service allows, so this visitor has to sign in with Google instead.
+ * A token for the player. Visiting your game normally creates a guest
+ * automatically, so one is almost always available. When the auth service
+ * refuses, the refusal is thrown as an `ApiError`:
+ *
+ * - a 401 with no problem type: no session at all.
+ * - `session-expired`: the player *had* an account (Google, or one merged into
+ *   another) and its session died. The auth service refuses to silently
+ *   replace it with a new guest, because that would drop them into your game
+ *   as a stranger with none of their progress. Send them to `loginUrl()`.
+ * - `guest-limit-reached`: the player's network already holds as many guests
+ *   as the auth service allows, so this visitor has to sign in with Google
+ *   instead. Send them to `loginUrl()`.
+ * - `account-suspended`: the platform has suspended the player. Signing in
+ *   again can't help, so don't send them to `loginUrl()`; show them
+ *   `error.message`.
  */
-export type AccessTokenResult =
-  | { status: "token"; access_token: string; expires_at: string }
-  | { status: "session_expired" }
-  | { status: "guest_limit_reached" }
-  | { status: "signed_out" };
+export async function getAccessToken(forceRefresh = false): Promise<string> {
+  if (!forceRefresh && tokenState.value && Date.now() < tokenState.expiresAt - 30_000) {
+    return tokenState.value;
+  }
 
-async function unauthorizedResult(response: Response): Promise<AccessTokenResult> {
+  // Past this point the cached token is expiring or was rejected.
   tokenState.value = null;
   tokenState.expiresAt = 0;
-  try {
-    const payload = (await response.json()) as { error?: string };
-    if (payload.error === "session_expired") {
-      return { status: "session_expired" };
-    }
-  } catch {
-    // Other 401s from the auth service carry a plain-text body.
-  }
-  return { status: "signed_out" };
-}
 
-export async function requestAccessToken(
-  forceRefresh = false,
-): Promise<AccessTokenResult> {
-  const now = Date.now();
-  if (!forceRefresh && tokenState.value && now < tokenState.expiresAt - 30_000) {
-    return {
-      status: "token",
-      access_token: tokenState.value,
-      expires_at: new Date(tokenState.expiresAt).toISOString(),
-    };
-  }
-
-  const response = await fetch(`${authOrigin()}/api/token`, {
+  const response = await fetchOrThrow(`${authOrigin()}/api/token`, {
     method: "POST",
     credentials: "include",
   });
-
-  if (response.status === 401) {
-    return unauthorizedResult(response);
-  }
-
-  if (response.status === 429) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    if (payload.error === "guest_limit_reached") {
-      return { status: "guest_limit_reached" };
-    }
-  }
-
-  if (!response.ok) {
-    throw new Error(`failed to mint access token: ${response.status}`);
-  }
-
   const payload = (await response.json()) as TokenResponse;
   tokenState.value = payload.access_token;
   tokenState.expiresAt = Date.parse(payload.expires_at);
-  return {
-    status: "token",
-    access_token: payload.access_token,
-    expires_at: payload.expires_at,
-  };
-}
-
-export async function getAccessToken(forceRefresh = false): Promise<string | null> {
-  const result = await requestAccessToken(forceRefresh);
-  return result.status === "token" ? result.access_token : null;
+  return payload.access_token;
 }
