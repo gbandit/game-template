@@ -1,13 +1,14 @@
-FROM node:22-alpine AS build
+FROM oven/bun:1-alpine AS build
 
 WORKDIR /app
-COPY package.json package-lock.json* ./
-# npm's own download cache (~200 MB) is bigger than node_modules itself and is
-# useless once the install layer is cached, so it never gets to enter the layer.
-RUN npm install --no-audit --no-fund && npm cache clean --force
+COPY package.json bun.lock ./
+# Not --frozen-lockfile: what bun.lock lists stays pinned, and a dependency
+# added to package.json without updating the lockfile is resolved here, so
+# adding one never needs Bun installed locally.
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install
 
 COPY . .
-RUN npm run build
+RUN bun run build
 
 # This image is only a build artifact for gbandit: put the static frontend
 # bundle in /out, and the platform will publish and serve it via shared nginx.

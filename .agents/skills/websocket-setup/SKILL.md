@@ -1,11 +1,13 @@
 ---
 name: websocket-setup
-description: Set up websocket functionality for the first time.
+description: Use when adding the game's first real-time feature (multiplayer, live updates, chat, state sync). Sets up the single authenticated WebSocket that every real-time feature shares.
 ---
 
 # WebSocket Infrastructure
 
 Use this skill when implementing any real-time feature for the first time: multiplayer, live updates, chat, game state sync.
+
+**Prerequisite**: the backend is enabled (`backend` uncommented in `gbandit.jsonc`).
 
 ## Architecture
 
@@ -24,7 +26,7 @@ Flow:
 4. On verification failure, reject the upgrade with 401 before accepting.
 5. Build an `AuthenticatedUser` from the verified claims and pass it into the connection task — do not re-extract per message.
 
-Dev bypass: in debug builds, also accept `Sec-WebSocket-Protocol: dev-user, <name>` where `<name>` is `eric`, `anna`, or `steve` (mirrors the `X-Dev-User` HTTP bypass in `backend/src/auth.rs`). This lets `websocat` test the WS without a real JWT.
+Dev bypass: only when `state.config.dev_auth_enabled` is true, also accept `Sec-WebSocket-Protocol: dev-user, <name>` where `<name>` is `eric`, `anna`, or `steve`. This is the same gate as the `X-Dev-User` HTTP bypass in `backend/src/auth.rs`. Never gate it on a debug build: the deployed backend is a debug build too.
 
 ## Required Module Shape
 
@@ -39,8 +41,9 @@ Backend:
 Frontend:
 1. Shared `WebSocketProvider` for one app-level connection
 2. Provider mounted high enough in router to cover all real-time routes
-3. Provider calls `getAccessToken()` from `@/lib/auth` at each connect/reconnect and passes the result as the `bearer` subprotocol. Do not cache the token in the provider — `getAccessToken` already handles caching and refresh-before-expiry.
+3. Provider calls `getAccessToken()` from `@/lib/auth` at each connect/reconnect and passes the result as the `bearer` subprotocol. Do not cache the token in the provider; `getAccessToken` already handles caching and refresh-before-expiry.
 4. Consumer API exposes `send`, `connected`, `subscribe`
+5. Under `bun run dev` (`import.meta.env.DEV`) there is no auth service to get a token from, so the provider opens the socket with `["dev-user", getDevUser()]` (from `@/lib/dev-auth/dev-user`) instead, the same way `devApiFetch` sends `X-Dev-User`.
 
 ## Required Invariants
 
@@ -64,17 +67,17 @@ Frontend:
 
 1. Auto-reconnect with bounded backoff.
 2. On reconnect, call `getAccessToken()` again — never reuse the previous attempt's token.
-3. On upgrade failure with 401, retry **once** with `getAccessToken(true)` before falling back to the backoff loop. This mirrors the HTTP client's retry pattern (`frontend/src/lib/http.ts`) and handles clock skew / JWKS rotation where a locally-cached token is rejected by the server. If the forced-refresh attempt also 401s, treat the user as logged out.
+3. Browsers don't expose the status of a rejected upgrade; it shows up as a `close` event before `onopen` ever fired. When that happens, retry **once** with `getAccessToken(true)` before falling back to the backoff loop. This mirrors the HTTP client's retry (`frontend/src/lib/http.ts`) and covers a cached token the server rejects (clock skew, JWKS rotation).
 4. Re-subscribe listeners after reconnect (provider-level pub/sub handles this).
 5. Only send when socket is open.
 6. Parse defensively; malformed server payloads must not crash UI.
 
 ## Testing in Dev
 
-Browsers: must be logged in (token in auth context); the provider passes it as the `bearer` subprotocol automatically.
+Browsers: every visitor of the deployed game has a token (guests too), and the provider passes it as the `bearer` subprotocol. Under `bun run dev` it sends the dev user picked in the dev toolbar.
 
 CLI with `websocat`:
 ```
 websocat -H 'Sec-WebSocket-Protocol: dev-user, eric' ws://.../api/ws
 ```
-The HTTP `X-Dev-User` bypass does **not** apply here — use the `dev-user` subprotocol in debug builds instead.
+The `X-Dev-User` header does **not** apply here; use the `dev-user` subprotocol instead.

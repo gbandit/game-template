@@ -1,6 +1,6 @@
 ---
 name: lobby-setup
-description: Set up lobby functionality for the first time.
+description: Use when adding multiplayer lobbies, where players gather, ready up and start a game together. Builds on websocket-setup.
 ---
 
 # Multiplayer Lobbies
@@ -9,7 +9,7 @@ Use this skill when implementing lobby-based multiplayer for the first time: pla
 
 This defines the baseline lobby architecture and invariants. Adapt behavior as needed, but keep the invariants intact.
 
-**Prerequisite**: The **websockets** skill must be set up first. Lobbies build on top of the WebSocket infrastructure.
+**Prerequisite**: the **websocket-setup** skill has been applied. Lobbies build on its WebSocket connection.
 
 ## Architecture
 
@@ -55,12 +55,12 @@ Lobbies can be purely in-memory (most games). Add database tables only if you ne
 
 ## Frontend Setup
 
-Use the `WebSocketProvider` from the **websockets** skill as transport. Lobby UI subscribes to `lobby.state` + `lobby.event`, updates local state only from authoritative snapshots, and emits intents through `lobby.*` client messages.
+Use the `WebSocketProvider` from the **websocket-setup** skill as transport. Lobby UI subscribes to `lobby.state` + `lobby.event`, updates local state only from authoritative snapshots, and emits intents through `lobby.*` client messages.
 
 ## Lobby → Game transition
 
 When all players are ready:
-1. Lobby actor creates a game (via `GameManager`)
+1. Lobby actor creates a game through your game's manager (create one shaped like `LobbyManager` if it doesn't exist)
 2. Lobby broadcasts `ServerMsg::GameStarting { game_id }` to all members
 3. Clients navigate to the game route
 4. Clients send `ClientMsg::GameJoin { game_id }` over the same WebSocket

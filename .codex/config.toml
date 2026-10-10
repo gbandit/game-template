@@ -1,8 +1,0 @@
-[mcp_servers.context7]
-url = "https://mcp.context7.com/mcp"
-bearer_token_env_var = "CONTEXT7_API_KEY"
-
-[mcp_servers.chrome-devtools]
-command = "bash"
-args = ["-lc", "chrome-devtools-mcp --browser-url=http://127.0.0.1:${CHROME_DEBUG_PORT}"]
-env_vars = ["CHROME_DEBUG_PORT"]

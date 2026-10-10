@@ -7,7 +7,7 @@
 
 const PROBLEM_TYPE_BASE = "https://docs.gbandit.com/errors#";
 
-const UNKNOWN_ERROR = "Something went wrong. Please try again.";
+const UNKNOWN_ERROR = "Something went wrong on this page.";
 
 /** The gBandit problem types the template branches on. */
 export type ProblemSlug =

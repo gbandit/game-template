@@ -31,10 +31,6 @@ export async function signOut(redirect = window.location.origin): Promise<void> 
   window.location.assign(redirect);
 }
 
-export function guestUrl(redirect = window.location.href): string {
-  return loginUrl(redirect);
-}
-
 /**
  * A token for the player. Visiting your game normally creates a guest
  * automatically, so one is almost always available. When the auth service

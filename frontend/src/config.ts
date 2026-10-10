@@ -1,1 +1,1 @@
-export const GAME_NAME = "replace-with-project";
+export const GAME_TITLE = "replace-with-title";

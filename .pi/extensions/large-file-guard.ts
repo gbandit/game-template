@@ -5,7 +5,6 @@ import { extname, resolve } from "node:path";
 const MAX_LINES = 500;
 const IGNORE_TOKEN = "pi-ignore-large-file";
 const SUPPORTED_EXTENSIONS = new Set([".ts", ".js", ".rs"]);
-const MESSAGE_PREFIX = "Automatisk filstorleksvarning:";
 
 function normalizeToolPath(cwd: string, path: unknown): string | undefined {
     if (typeof path !== "string" || path.trim() === "") return undefined;
@@ -41,7 +40,7 @@ export default function(pi: ExtensionAPI) {
         if (lines <= MAX_LINES) return undefined;
 
         warnedFiles.add(absolutePath);
-        const message = `${MESSAGE_PREFIX} ${absolutePath} är nu ${lines} rader lång, vilket är över gränsen på ${MAX_LINES} rader. Bryt upp filen och refaktorisera den innan du fortsätter lägga till funktionalitet. Om filen medvetet ska få vara större kan du lägga till kommentaren "${IGNORE_TOKEN}" i filen.`;
+        const message = `File size warning: ${absolutePath} is now ${lines} lines, over the ${MAX_LINES}-line limit. Split it up before adding more to it. If the file is meant to be this large, add the comment "${IGNORE_TOKEN}" to it.`;
 
         if (ctx.isIdle()) {
             pi.sendUserMessage(message);
@@ -50,7 +49,7 @@ export default function(pi: ExtensionAPI) {
         }
 
         if (ctx.hasUI) {
-            ctx.ui.notify(`Bad AI! Filen är för stor: ${absolutePath} (${lines} rader)`, "warning");
+            ctx.ui.notify(`File too large: ${absolutePath} (${lines} lines)`, "warning");
         }
 
         return undefined;

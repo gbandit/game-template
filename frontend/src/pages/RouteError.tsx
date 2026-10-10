@@ -31,13 +31,13 @@ export function RouteError() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-      <h1 className="text-3xl font-bold">Something went wrong</h1>
+      <h1 className="text-3xl font-bold">Couldn't load this page</h1>
       <ErrorMessage error={error} />
       <button
         onClick={() => window.location.reload()}
         className="rounded-lg border border-foreground/20 px-4 py-2 text-sm hover:bg-foreground/5 transition-colors"
       >
-        Try again
+        Reload page
       </button>
     </main>
   );

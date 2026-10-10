@@ -5,7 +5,7 @@ import { RouteError } from "@/pages/RouteError";
 import { Spinner } from "@/components/Spinner";
 // Auth-aware routing needs the backend (uncomment `backend` in gbandit.jsonc),
 // then swap in the commented routes below:
-// import { optionalUser, requireUser } from "@/api/session";
+// import { requireUser } from "@/api/session";
 // import { AuthHome } from "@/pages/AuthHome";
 // import { AuthLayout } from "@/pages/AuthLayout";
 
@@ -18,16 +18,11 @@ export const router = createBrowserRouter([
         path: "/",
         Component: Home,
       },
-      // {
-      //   path: "/",
-      //   loader: optionalUser,
-      //   Component: AuthHome,
-      // },
-      // Routes that require a signed-in user go under AuthLayout:
+      // Routes that know the player go under AuthLayout:
       // {
       //   loader: requireUser,
       //   Component: AuthLayout,
-      //   children: [],
+      //   children: [{ path: "/", Component: AuthHome }],
       // },
       {
         path: "*",
