@@ -164,25 +164,6 @@ async fn fetch_jwks_keys(
     Ok(keys)
 }
 
-fn dev_user(name: &str) -> Option<AccessTokenClaims> {
-    let sub = match name.to_lowercase().as_str() {
-        "eric" => "dev-eric",
-        "anna" => "dev-anna",
-        "steve" => "dev-steve",
-        _ => return None,
-    };
-    Some(AccessTokenClaims {
-        iss: "dev".into(),
-        sub: sub.into(),
-        aud: "game-backend".into(),
-        exp: i64::MAX,
-        iat: 0,
-        jti: format!("dev-{sub}"),
-        username: Some(name.to_lowercase()),
-        is_anon: false,
-    })
-}
-
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
     pub claims: AccessTokenClaims,
@@ -209,19 +190,6 @@ impl FromRequestParts<AppState> for AuthenticatedUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        if state.config.dev_auth_enabled {
-            if let Some(name) = parts
-                .headers
-                .get("x-dev-user")
-                .and_then(|v| v.to_str().ok())
-            {
-                let claims = dev_user(name)
-                    .ok_or_else(|| AppError::BadRequest(format!("unknown dev user: {name}")))?;
-                tracing::debug!(user = name, "using dev auth bypass");
-                return Ok(Self { claims });
-            }
-        }
-
         let auth_header = parts
             .headers
             .get(AUTHORIZATION)

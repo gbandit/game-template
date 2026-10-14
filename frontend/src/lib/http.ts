@@ -1,6 +1,5 @@
 import { ApiError, fetchOrThrow } from "@/lib/api-error";
 import { getAccessToken } from "@/lib/auth";
-import { withDevUser } from "@/lib/dev-auth/dev-fetch";
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetchOrThrow(path, init);
@@ -19,7 +18,12 @@ function withBearer(init: RequestInit | undefined, token: string): RequestInit {
   return { ...init, headers };
 }
 
-async function prodApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Calls your backend as the signed-in player. Every failure is thrown as an
+ * `ApiError`; branch on `error.is(...)` or `error.status`, and show the player
+ * `error.message`.
+ */
+export async function apiFetchWithToken<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await getAccessToken();
   try {
     return await fetchJson<T>(path, withBearer(init, token));
@@ -31,14 +35,4 @@ async function prodApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw error;
   }
-}
-
-/**
- * Calls your backend as the signed-in player. Every failure is thrown as an
- * `ApiError`; branch on `error.is(...)` or `error.status`, and show the player
- * `error.message`.
- */
-export async function apiFetchWithToken<T>(path: string, init?: RequestInit): Promise<T> {
-  if (import.meta.env.DEV) return fetchJson<T>(path, withDevUser(init));
-  return prodApiFetch<T>(path, init);
 }

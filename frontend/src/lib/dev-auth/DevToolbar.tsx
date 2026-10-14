@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { getDevUser, setDevUser, type DevUser } from "./dev-user";
+import { getTestUser, setTestUser, TEST_USER_COUNT, type TestUser } from "./test-user";
 
-const OPTIONS: { label: string; value: DevUser }[] = [
+const OPTIONS: { label: string; value: TestUser }[] = [
   { label: "Logged out", value: null },
-  { label: "eric", value: "eric" },
-  { label: "anna", value: "anna" },
-  { label: "steve", value: "steve" },
+  ...Array.from({ length: TEST_USER_COUNT }, (_, index) => ({
+    label: `test-user-${index + 1}`,
+    value: index + 1,
+  })),
 ];
 
 export function DevToolbar() {
-  const [current, setCurrent] = useState<DevUser>(getDevUser());
+  const [current, setCurrent] = useState<TestUser>(getTestUser());
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -22,14 +23,14 @@ export function DevToolbar() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  function pick(value: DevUser) {
-    setDevUser(value);
+  function pick(value: TestUser) {
+    setTestUser(value);
     setCurrent(value);
     setOpen(false);
     window.location.reload();
   }
 
-  const label = current ?? "logged out";
+  const label = current ? `test-user-${current}` : "logged out";
 
   return (
     <div

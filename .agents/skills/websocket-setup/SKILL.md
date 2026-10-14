@@ -26,7 +26,7 @@ Flow:
 4. On verification failure, reject the upgrade with 401 before accepting.
 5. Build an `AuthenticatedUser` from the verified claims and pass it into the connection task — do not re-extract per message.
 
-Dev bypass: only when `state.config.dev_auth_enabled` is true, also accept `Sec-WebSocket-Protocol: dev-user, <name>` where `<name>` is `eric`, `anna`, or `steve`. This is the same gate as the `X-Dev-User` HTTP bypass in `backend/src/auth.rs`. Never gate it on a debug build: the deployed backend is a debug build too.
+There is no other way in, in dev either: Test Users (`gbandit test-token`) carry real tokens.
 
 ## Required Module Shape
 
@@ -43,7 +43,6 @@ Frontend:
 2. Provider mounted high enough in router to cover all real-time routes
 3. Provider calls `getAccessToken()` from `@/lib/auth` at each connect/reconnect and passes the result as the `bearer` subprotocol. Do not cache the token in the provider; `getAccessToken` already handles caching and refresh-before-expiry.
 4. Consumer API exposes `send`, `connected`, `subscribe`
-5. Under `bun run dev` (`import.meta.env.DEV`) there is no auth service to get a token from, so the provider opens the socket with `["dev-user", getDevUser()]` (from `@/lib/dev-auth/dev-user`) instead, the same way `devApiFetch` sends `X-Dev-User`.
 
 ## Required Invariants
 
@@ -74,10 +73,10 @@ Frontend:
 
 ## Testing in Dev
 
-Browsers: every visitor of the deployed game has a token (guests too), and the provider passes it as the `bearer` subprotocol. Under `bun run dev` it sends the dev user picked in the dev toolbar.
+Browsers: every visitor of the deployed game has a token (guests too), and the provider passes it as the `bearer` subprotocol. Under `bun run dev` `getAccessToken()` returns the Test User picked in the DEV toolbar.
 
-CLI with `websocat`:
+CLI with `websocat`, as two players at once:
 ```
-websocat -H 'Sec-WebSocket-Protocol: dev-user, eric' ws://.../api/ws
+websocat -H "Sec-WebSocket-Protocol: bearer, $(gbandit test-token 1)" wss://dev-<slug>.gbandit.com/api/ws
+websocat -H "Sec-WebSocket-Protocol: bearer, $(gbandit test-token 2)" wss://dev-<slug>.gbandit.com/api/ws
 ```
-The `X-Dev-User` header does **not** apply here; use the `dev-user` subprotocol instead.

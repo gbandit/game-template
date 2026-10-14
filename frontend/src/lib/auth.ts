@@ -1,4 +1,5 @@
 import { fetchOrThrow } from "@/lib/api-error";
+import { fetchTestUserToken } from "@/lib/dev-auth/test-user";
 import { gbanditOrigin } from "@/lib/gbandit";
 
 type TokenResponse = {
@@ -47,6 +48,9 @@ export async function signOut(redirect = window.location.origin): Promise<void> 
  * - `account-suspended`: the platform has suspended the player. Signing in
  *   again can't help, so don't send them to `loginUrl()`; show them
  *   `error.message`.
+ *
+ * Under `bun run dev` it is a token for the Test User picked in the DEV
+ * toolbar instead, and a 401 when none is picked.
  */
 export async function getAccessToken(forceRefresh = false): Promise<string> {
   if (!forceRefresh && tokenState.value && Date.now() < tokenState.expiresAt - 30_000) {
@@ -57,10 +61,12 @@ export async function getAccessToken(forceRefresh = false): Promise<string> {
   tokenState.value = null;
   tokenState.expiresAt = 0;
 
-  const response = await fetchOrThrow(`${authOrigin()}/api/token`, {
-    method: "POST",
-    credentials: "include",
-  });
+  const response = import.meta.env.DEV
+    ? await fetchTestUserToken()
+    : await fetchOrThrow(`${authOrigin()}/api/token`, {
+        method: "POST",
+        credentials: "include",
+      });
   const payload = (await response.json()) as TokenResponse;
   tokenState.value = payload.access_token;
   tokenState.expiresAt = Date.parse(payload.expires_at);

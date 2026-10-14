@@ -11,6 +11,7 @@ Other useful CLI commands:
 gbandit logs [frontend|backend]
 gbandit sql "SELECT ..."
 gbandit env [set|list|delete]
+gbandit test-token [1-10]
 gbandit --help
 gbandit docs
 ```
@@ -18,4 +19,9 @@ gbandit docs
 
 ## Testing authenticated endpoints
 
-In the dev environment, send `X-Dev-User: eric` (`anna` and `steve` also work) as a header to bypass auth when testing backend endpoints.
+`gbandit test-token [1-10]` prints a token for one of the project's Test Users, made-up players of the dev environment. Each number is the same player every time, so use several to test anything multiplayer:
+```bash
+curl -H "Authorization: Bearer $(gbandit test-token 1)" https://dev-<slug>.gbandit.com/api/me
+curl -H "Authorization: Bearer $(gbandit test-token 2 --guest)" https://dev-<slug>.gbandit.com/api/me
+```
+`--guest` gives the guest with that number, `test-guest-<n>`, a player of its own. A token lasts 30 minutes and only works against dev.
