@@ -1,7 +1,5 @@
-import { redirect } from "react-router";
-import { ApiError } from "@/lib/api-error";
-import { loginUrl } from "@/lib/auth";
-import { apiFetchWithToken } from "@/lib/http";
+import { redirectDocument } from "react-router";
+import { apiFetch } from "@/lib/http";
 
 export interface SessionUser {
   id: string;
@@ -10,7 +8,7 @@ export interface SessionUser {
 }
 
 export function getMe(): Promise<SessionUser> {
-  return apiFetchWithToken<SessionUser>("/api/me");
+  return apiFetch<SessionUser>("/api/me");
 }
 
 /**
@@ -19,16 +17,20 @@ export function getMe(): Promise<SessionUser> {
  * session expired, or their network already holds too many guests.
  */
 function isSignedOut(error: unknown): boolean {
-  return error instanceof ApiError && (error.status === 401 || error.is("guest-limit-reached"));
+  return (
+    error instanceof gbandit.GbanditError &&
+    (error.status === 401 || error.is("guest-limit-reached"))
+  );
 }
 
-// Loaders let any other failure propagate as it is; RouteError shows it.
+// Loaders let any other failure propagate as it is; RouteError shows it. The
+// sign-in page is never one of this app's routes, so it gets a full page load.
 
 export async function requireUser(): Promise<SessionUser> {
   try {
     return await getMe();
   } catch (error) {
-    if (isSignedOut(error)) throw redirect(loginUrl());
+    if (isSignedOut(error)) throw redirectDocument(gbandit.loginUrl());
     throw error;
   }
 }

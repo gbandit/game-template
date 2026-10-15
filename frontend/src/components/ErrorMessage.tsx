@@ -1,8 +1,8 @@
-import { ApiError, errorMessage } from "@/lib/api-error";
+import { errorMessage } from "@/lib/http";
 
 /** What went wrong, with the request id the player can quote when asking for help. */
 export function ErrorMessage({ error }: { error: unknown }) {
-  const requestId = error instanceof ApiError ? error.requestId : undefined;
+  const requestId = error instanceof gbandit.GbanditError ? error.requestId : undefined;
 
   return (
     <div className="flex flex-col items-center gap-1 text-center">

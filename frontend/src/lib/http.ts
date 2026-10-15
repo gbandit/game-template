@@ -1,38 +1,21 @@
-import { ApiError, fetchOrThrow } from "@/lib/api-error";
-import { getAccessToken } from "@/lib/auth";
-
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetchOrThrow(path, init);
-  try {
-    return (await response.json()) as T;
-  } catch {
-    throw new ApiError(path, response.status, "The server sent a response we couldn't read.", {
-      requestId: response.headers.get("x-request-id") ?? undefined,
-    });
-  }
-}
-
-function withBearer(init: RequestInit | undefined, token: string): RequestInit {
-  const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${token}`);
-  return { ...init, headers };
-}
+const UNKNOWN_ERROR = "Something went wrong on this page.";
 
 /**
- * Calls your backend as the signed-in player. Every failure is thrown as an
- * `ApiError`; branch on `error.is(...)` or `error.status`, and show the player
- * `error.message`.
+ * Calls your backend as the signed-in player and reads its JSON answer, with
+ * `gbandit.fetch` from the gbandit runtime. Every refusal is thrown as a
+ * `GbanditError`, read from the Problem Details body your backend answers
+ * with (backend/src/errors.rs); branch on `error.is(...)` or `error.status`,
+ * and show the player `error.message`.
  */
-export async function apiFetchWithToken<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getAccessToken();
-  try {
-    return await fetchJson<T>(path, withBearer(init, token));
-  } catch (error) {
-    // A cached token may still validate locally but be rejected by the server
-    // (clock skew, JWKS rotation). Retry once with a forced refresh.
-    if (error instanceof ApiError && error.status === 401) {
-      return fetchJson<T>(path, withBearer(init, await getAccessToken(true)));
-    }
-    throw error;
-  }
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await gbandit.fetch(path, init);
+  return (await response.json()) as T;
+}
+
+/** The sentence to show the player for anything thrown. Only a GbanditError
+ *  carries one written for a person; anything else is a bug whose message is
+ *  not. */
+export function errorMessage(error: unknown): string {
+  if (error instanceof gbandit.GbanditError) return error.message;
+  return UNKNOWN_ERROR;
 }

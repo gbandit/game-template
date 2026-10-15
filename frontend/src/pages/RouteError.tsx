@@ -1,15 +1,14 @@
 import { useEffect } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router";
 import { ErrorMessage } from "@/components/ErrorMessage";
-import { ApiError } from "@/lib/api-error";
 
 export function RouteError() {
   const error = useRouteError();
 
   useEffect(() => {
-    if (error instanceof ApiError) {
+    if (error instanceof gbandit.GbanditError) {
       console.error("[route] request failed", {
-        path: error.path,
+        url: error.url,
         status: error.status,
         type: error.type,
         requestId: error.requestId,

@@ -41,7 +41,7 @@ Backend:
 Frontend:
 1. Shared `WebSocketProvider` for one app-level connection
 2. Provider mounted high enough in router to cover all real-time routes
-3. Provider calls `getAccessToken()` from `@/lib/auth` at each connect/reconnect and passes the result as the `bearer` subprotocol. Do not cache the token in the provider; `getAccessToken` already handles caching and refresh-before-expiry.
+3. Provider calls `gbandit.getAccessToken()` (the gbandit runtime's global) at each connect/reconnect and passes the result as the `bearer` subprotocol. Do not cache the token in the provider; `getAccessToken` already handles caching and refresh-before-expiry.
 4. Consumer API exposes `send`, `connected`, `subscribe`
 
 ## Required Invariants
@@ -65,15 +65,15 @@ Frontend:
 ## Frontend Lifecycle Rules
 
 1. Auto-reconnect with bounded backoff.
-2. On reconnect, call `getAccessToken()` again — never reuse the previous attempt's token.
-3. Browsers don't expose the status of a rejected upgrade; it shows up as a `close` event before `onopen` ever fired. When that happens, retry **once** with `getAccessToken(true)` before falling back to the backoff loop. This mirrors the HTTP client's retry (`frontend/src/lib/http.ts`) and covers a cached token the server rejects (clock skew, JWKS rotation).
+2. On reconnect, call `gbandit.getAccessToken()` again — never reuse the previous attempt's token.
+3. Browsers don't expose the status of a rejected upgrade; it shows up as a `close` event before `onopen` ever fired. When that happens, retry **once** with `gbandit.getAccessToken({ forceRefresh: true })` before falling back to the backoff loop. This mirrors the retry `gbandit.fetch` does for HTTP and covers a cached token the server rejects (clock skew, JWKS rotation).
 4. Re-subscribe listeners after reconnect (provider-level pub/sub handles this).
 5. Only send when socket is open.
 6. Parse defensively; malformed server payloads must not crash UI.
 
 ## Testing in Dev
 
-Browsers: every visitor of the deployed game has a token (guests too), and the provider passes it as the `bearer` subprotocol. Under `bun run dev` `getAccessToken()` returns the Test User picked in the DEV toolbar.
+Browsers: every visitor of the deployed game has a token (guests too), and the provider passes it as the `bearer` subprotocol. Under `bun run dev` `gbandit.getAccessToken()` returns a token for the Test User picked with the `DEV` badge (`test-guest-1` until you pick one).
 
 CLI with `websocat`, as two players at once:
 ```

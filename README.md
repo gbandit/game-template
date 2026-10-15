@@ -32,10 +32,10 @@ cd frontend && bun install && bun run dev
 ```
 
 Open <http://localhost:5173>. Signing in through gbandit does not work on
-`localhost`, so use the `DEV` button in the bottom-right corner to play as one
-of your project's test users. Their tokens come from `gbandit test-token`, so
-you need to be logged in with `gbandit login` and have deployed the project
-once.
+`localhost`, so you play as one of your project's test users: a guest at
+first, and the `DEV` button in the bottom-right corner switches. Their tokens
+come from `gbandit test-token`, so you need to be logged in with
+`gbandit login` and have deployed the project once.
 
 Once the backend has a database, run `sqlx database setup` in `backend/` first
 (`cargo install sqlx-cli`), since `query!` checks your SQL against it while

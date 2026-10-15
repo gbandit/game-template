@@ -1,5 +1,4 @@
 import { GAME_TITLE } from "@/config";
-import { loginUrl } from "@/lib/auth";
 import { useUser } from "@/lib/auth-context";
 import { SignOutButton } from "@/components/SignOutButton";
 
@@ -15,7 +14,7 @@ export function AuthHome() {
         <div className="rounded-lg border border-foreground/20 bg-foreground/5 px-4 py-3 text-sm w-full max-w-md text-center">
           You&apos;re using a guest account.{" "}
           <a
-            href={loginUrl()}
+            href={gbandit.loginUrl()}
             className="underline font-medium hover:opacity-80"
           >
             Sign in

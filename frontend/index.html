@@ -5,6 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>replace-with-title</title>
+    <!-- The gbandit runtime: the global `gbandit` for calling the backend as
+         the player and signing in, player counting, and error reporting
+         (https://docs.gbandit.com/runtime). Keep it before the game's own
+         scripts. -->
+    <script defer src="/__gbandit/runtime.js" vite-ignore></script>
 </head>
 
 <body>
