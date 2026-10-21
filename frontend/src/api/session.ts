@@ -13,14 +13,11 @@ export function getMe(): Promise<SessionUser> {
 
 /**
  * Visiting a game creates a guest automatically, so a player only lacks a
- * session when the auth service wants them to sign in with Google: their
- * session expired, or their network already holds too many guests.
+ * session when the auth service wants them to sign in with Google again
+ * because their session expired.
  */
 function isSignedOut(error: unknown): boolean {
-  return (
-    error instanceof gbandit.GbanditError &&
-    (error.status === 401 || error.is("guest-limit-reached"))
-  );
+  return error instanceof gbandit.GbanditError && error.status === 401;
 }
 
 // Loaders let any other failure propagate as it is; RouteError shows it. The

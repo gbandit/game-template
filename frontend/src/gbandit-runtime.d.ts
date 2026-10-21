@@ -5,7 +5,6 @@
 type GbanditProblemSlug =
   | "no-backend"
   | "session-expired"
-  | "guest-limit-reached"
   | "account-suspended";
 
 /** A refusal from gBandit, read from its Problem Details body. */
@@ -26,8 +25,8 @@ interface GbanditRuntime {
   /**
    * A token for the player, cached until shortly before it expires. A first
    * visit creates a guest, so one is almost always available. Rejects with a
-   * `GbanditError`: `session-expired` and `guest-limit-reached` mean "send
-   * the player to `loginUrl()`", `account-suspended` means they can't play.
+   * `GbanditError`: `session-expired` means "send the player to
+   * `loginUrl()`", `account-suspended` means they can't play.
    * Under a local dev server it is a Test User's token from the dev server.
    */
   getAccessToken(options?: { forceRefresh?: boolean }): Promise<string>;
