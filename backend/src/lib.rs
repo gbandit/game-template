@@ -11,8 +11,9 @@ use axum::Router;
 use axum::body::Body;
 use axum::extract::{FromRef, Request};
 use axum::middleware::{self, Next};
-use axum::response::Response;
+use axum::response::{IntoResponse, Response};
 use axum::routing::get;
+use tower_http::catch_panic::CatchPanicLayer;
 // Uncomment when you add a database.
 // use sqlx::SqlitePool;
 
@@ -49,6 +50,11 @@ pub fn app(state: AppState) -> Router {
         .route("/", get(|| async { "running" }))
         .route("/api/me", get(routes::me::get_me))
         .fallback(fallback)
+        // A panicking handler answers 500 instead of dropping the connection;
+        // the panic itself is logged by the hook in main.rs.
+        .layer(CatchPanicLayer::custom(|_| {
+            AppError::Internal("handler panicked".into()).into_response()
+        }))
         .layer(middleware::from_fn(log_request))
         // Health is below the request-log middleware so probe traffic doesn't fill the logs.
         .route("/api/health", get(routes::health::health))

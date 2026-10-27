@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 axum = { version = "0.8", features = ["ws"] }
 tokio = { version = "1", features = ["full"] }
-tower-http = { version = "0.6", features = ["trace"] }
+tower-http = { version = "0.6", features = ["catch-panic"] }
 # sqlx's compile-time query! checks lock the binary to one database engine.
 # SQLite is what the platform hands a backend that declares `volume.sqlite`;
 # `migrate` is what applies your migrations at boot (see backend/src/main.rs).

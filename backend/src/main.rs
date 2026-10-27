@@ -17,12 +17,19 @@ async fn main() {
         .without_time()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "replace_with_project=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| "replace_with_project=info,tower_http=info".into()),
         )
         .init();
 
+    // A panic is logged through tracing like every other line, so it carries
+    // a level and reaches `gbandit logs backend` as an error.
+    std::panic::set_hook(Box::new(|info| {
+        let backtrace = std::backtrace::Backtrace::capture();
+        tracing::error!(%backtrace, "{info}");
+    }));
+
     if let Err(error) = run().await {
-        tracing::error!(error = %error, "backend failed to start");
+        tracing::error!("backend failed to start: {error}");
         std::process::exit(1);
     }
 }
@@ -37,9 +44,11 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
         config.auth_jwks_refresh_interval,
     )
     .await
-    .map_err(|error| -> Box<dyn Error + Send + Sync> {
-        tracing::error!(jwks_url = %config.auth_jwks_url, error = %error, "failed to initialize auth verifier");
-        Box::new(std::io::Error::other(error))
+    .map_err(|error| {
+        format!(
+            "failed to initialize auth verifier from {}: {error}",
+            config.auth_jwks_url
+        )
     })?;
 
     // Uncomment when you add a database. `journal_mode = WAL` is load-bearing:
@@ -50,12 +59,12 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
     //     .max_connections(5)
     //     .connect_with(
     //         SqliteConnectOptions::from_str(&config.database_url)
-    //             .map_err(log_startup_error("invalid DATABASE_URL"))?
+    //             .map_err(context("invalid DATABASE_URL"))?
     //             .create_if_missing(true)
     //             .journal_mode(SqliteJournalMode::Wal),
     //     )
     //     .await
-    //     .map_err(log_startup_error("failed to connect to database"))?;
+    //     .map_err(context("failed to connect to database"))?;
     //
     // Your code owns your schema. This applies every migration in
     // backend/migrations that has not run yet, before the server accepts its
@@ -64,7 +73,7 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
     // sqlx::migrate!("./migrations")
     //     .run(&pool)
     //     .await
-    //     .map_err(log_startup_error("failed to apply migrations"))?;
+    //     .map_err(context("failed to apply migrations"))?;
 
     let state = AppState {
         // pool,
@@ -80,24 +89,19 @@ async fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let listener = TcpListener::bind(addr)
         .await
-        .map_err(log_startup_error("failed to bind listener"))?;
+        .map_err(context("failed to bind listener"))?;
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .map_err(log_startup_error("server error"))?;
+        .map_err(context("server error"))?;
 
     Ok(())
 }
 
-fn log_startup_error<E>(message: &'static str) -> impl FnOnce(E) -> Box<dyn Error + Send + Sync>
-where
-    E: Error + Send + Sync + 'static,
-{
-    move |error| {
-        tracing::error!(error = %error, "{message}");
-        Box::new(error)
-    }
+/// Says what was being done when `error` happened; `main` logs it once.
+fn context<E: Error>(message: &'static str) -> impl FnOnce(E) -> Box<dyn Error + Send + Sync> {
+    move |error| format!("{message}: {error}").into()
 }
 
 async fn shutdown_signal() {
