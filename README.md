@@ -7,7 +7,7 @@ player accounts already wired up.
 ## Get started
 
 ```sh
-curl -fsSL https://github.com/gbandit/cli/releases/latest/download/install.sh | sh
+curl -fsSL https://gbandit.com/install.sh | sh
 gbandit login
 gbandit scaffold my-game
 cd my-game
